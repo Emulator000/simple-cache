@@ -12,6 +12,7 @@ struct Object {
 
 impl CacheItem for Object {}
 
+#[tokio::main]
 async fn main() {
     let cache = Cache::new();
     let object = Object {
