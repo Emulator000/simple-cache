@@ -3,9 +3,16 @@ A basic and simple Rust library async/await ready caching implementation for str
 
 ## Usage
 ```rust
-use simple_cache::Cache;
+use simple_cache::{Cache, CacheItem};
 
-fn main() {
+struct Object {
+    value: i32,
+    string: String,
+}
+
+impl CacheItem for Object {}
+
+async fn main() {
     let cache = Cache::new();
     let object = Object {
         value: 1,
