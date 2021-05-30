@@ -10,12 +10,13 @@ use arc_swap::ArcSwap;
 
 type AnyObject = Box<dyn Any + Send + Sync>;
 type CacheObject = Option<ArcSwap<AnyObject>>;
+type CacheResult<T> = Result<T, CacheError>;
 
 pub trait CacheItem: Send + Sync {}
 
-pub enum CacheResult {
-    Ok,
-    Error,
+pub enum CacheError {
+    KeyNotFoundError,
+    RemoveError,
 }
 
 #[derive(Clone)]
@@ -50,7 +51,7 @@ where
         }
     }
 
-    pub async fn insert<T: 'static + CacheItem>(&self, key: K, value: Option<T>) -> CacheResult {
+    pub async fn insert<T: 'static + CacheItem>(&self, key: K, value: Option<T>) -> CacheResult<&T> {
         match self.items.write().await.insert(
             key,
             match value {
@@ -60,7 +61,7 @@ where
                 None => None,
             },
         ) {
-            Some(_) => CacheResult::Ok,
+            Some(value) => Ok(value),
             None => CacheResult::Error,
         }
     }
