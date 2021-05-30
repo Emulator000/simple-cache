@@ -9,19 +9,21 @@ use async_std::sync::RwLock;
 use arc_swap::ArcSwap;
 
 type AnyObject = Box<dyn Any + Send + Sync>;
-type CacheObject = Option<ArcSwap<AnyObject>>;
+type CacheObject = ArcSwap<AnyObject>;
 type CacheResult<T> = Result<T, CacheError>;
+type CacheType<T> = Arc<T>;
 
 pub trait CacheItem: Send + Sync {}
 
+#[derive(Debug)]
 pub enum CacheError {
-    KeyNotFoundError,
-    RemoveError,
+    NotFound,
+    ValueMismatch,
 }
 
 #[derive(Clone)]
 pub struct Cache<K> {
-    items: Arc<RwLock<HashMap<K, CacheObject>>>,
+    items: Arc<RwLock<HashMap<K, Option<CacheObject>>>>,
 }
 
 impl<K> Cache<K>
@@ -34,24 +36,25 @@ where
         }
     }
 
-    pub async fn get<T: 'static + CacheItem, Q: ?Sized>(&self, key: &Q) -> Option<Option<Arc<T>>>
+    pub async fn get<T: 'static + CacheItem, Q: ?Sized>(
+        &self,
+        key: &Q,
+    ) -> CacheResult<Option<CacheType<T>>>
     where
         K: Borrow<Q>,
         Q: Hash + Eq,
     {
         match self.items.read().await.get(key) {
-            Some(object) => match object {
-                Some(object) => Some(match object.load().downcast_ref::<Arc<T>>() {
-                    Some(value) => Some(value.to_owned()),
-                    None => None,
-                }),
-                None => Some(None),
-            },
-            None => None,
+            Some(object) => Self::downcast_object(object),
+            None => Ok(None),
         }
     }
 
-    pub async fn insert<T: 'static + CacheItem>(&self, key: K, value: Option<T>) -> CacheResult<&T> {
+    pub async fn insert<T: 'static + CacheItem>(
+        &self,
+        key: K,
+        value: Option<T>,
+    ) -> CacheResult<Option<CacheType<T>>> {
         match self.items.write().await.insert(
             key,
             match value {
@@ -61,19 +64,31 @@ where
                 None => None,
             },
         ) {
-            Some(value) => Ok(value),
-            None => CacheResult::Error,
+            Some(object) => Self::downcast_object(&object),
+            None => Ok(None),
         }
     }
 
-    pub async fn remove<Q: ?Sized>(&self, key: &Q) -> CacheResult
+    pub async fn remove<Q: ?Sized>(&self, key: &Q) -> CacheResult<Option<CacheObject>>
     where
         K: Borrow<Q>,
         Q: Hash + Eq,
     {
         match self.items.write().await.remove(key) {
-            Some(_) => CacheResult::Ok,
-            None => CacheResult::Error,
+            Some(value) => Ok(value),
+            None => Err(CacheError::NotFound),
+        }
+    }
+
+    fn downcast_object<T: 'static + CacheItem>(
+        object: &Option<CacheObject>,
+    ) -> CacheResult<Option<CacheType<T>>> {
+        match object {
+            Some(object) => match object.load().downcast_ref::<Arc<T>>() {
+                Some(value) => Ok(Some(value.to_owned())),
+                None => Err(CacheError::ValueMismatch),
+            },
+            None => Ok(None),
         }
     }
 }
