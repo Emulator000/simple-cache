@@ -9,7 +9,6 @@ use arc_swap::ArcSwap;
 type AnyObject = Box<dyn Any + Send + Sync>;
 type CacheObject = ArcSwap<AnyObject>;
 type CacheResult<T> = Result<T, CacheError>;
-type CacheType<T> = Arc<T>;
 
 pub trait CacheItem: Send + Sync {}
 
@@ -39,14 +38,17 @@ where
     pub fn get<T: 'static + CacheItem, Q: ?Sized>(
         &self,
         key: &Q,
-    ) -> CacheResult<Option<CacheType<T>>>
+    ) -> CacheResult<Option<Option<Arc<T>>>>
     where
         K: Borrow<Q>,
         Q: Hash + Eq,
     {
         match self.items.read() {
             Ok(map) => match map.get(key) {
-                Some(object) => Self::downcast_object(object),
+                Some(object) => match Self::downcast_object(object) {
+                    Ok(value) => Ok(Some(value)),
+                    Err(e) => Err(e),
+                },
                 None => Ok(None),
             },
             Err(_) => Err(CacheError::ReadError),
@@ -57,17 +59,14 @@ where
         &self,
         key: K,
         value: Option<T>,
-    ) -> CacheResult<Option<CacheType<T>>> {
+    ) -> CacheResult<Option<Arc<T>>> {
         match self.items.write() {
             Ok(mut map) => {
                 match map.insert(
                     key,
-                    match value {
-                        Some(value) => Some(ArcSwap::new(Arc::new(
-                            Box::new(Arc::new(value)) as AnyObject
-                        ))),
-                        None => None,
-                    },
+                    value.map(|value| {
+                        ArcSwap::new(Arc::new(Box::new(Arc::new(value)) as AnyObject))
+                    }),
                 ) {
                     Some(object) => Self::downcast_object(&object),
                     None => Ok(None),
@@ -93,7 +92,7 @@ where
 
     fn downcast_object<T: 'static + CacheItem>(
         object: &Option<CacheObject>,
-    ) -> CacheResult<Option<CacheType<T>>> {
+    ) -> CacheResult<Option<Arc<T>>> {
         match object {
             Some(object) => match object.load().downcast_ref::<Arc<T>>() {
                 Some(value) => Ok(Some(value.to_owned())),

@@ -15,15 +15,30 @@ async fn insert_and_get() {
         string: String::from("test!"),
     };
 
+    let cache_get = cache.get::<Object, _>("test");
+
+    assert!(cache_get.is_ok());
+    assert!(cache_get.unwrap().is_none());
+
     let cache_insert = cache.insert("test", Some(object));
 
     assert!(cache_insert.is_ok());
     assert!(cache_insert.unwrap().is_none());
 
-    let cache_get = cache.get::<Object, _>("test").unwrap().unwrap();
+    let cache_get = cache.get::<Object, _>("test").unwrap().unwrap().unwrap();
 
     assert_eq!(cache_get.value, 1);
     assert_eq!(cache_get.string, "test!");
+
+    let cache_insert = cache.insert::<Object>("test", None);
+
+    assert!(cache_insert.is_ok());
+    assert!(cache_insert.unwrap().is_some());
+
+    let cache_get = cache.get::<Object, _>("test").unwrap();
+
+    assert!(cache_get.is_some());
+    assert!(cache_get.unwrap().is_none());
 }
 
 #[tokio::test]

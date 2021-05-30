@@ -24,9 +24,9 @@ async fn main() {
         string: String::from("test!"),
     };
 
-    cache.insert("test", Some(object)).await;
+    let _ = cache.insert("test", Some(object));
 
-    let cached_object = cache.get::<Object, _>("test").await.unwrap().unwrap();
+    let cached_object = cache.get::<Object, _>("test").unwrap().unwrap().unwrap();
     
     if cached_object.value == 1 {
         println!("Hi from Simple Cache!");
