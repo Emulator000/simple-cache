@@ -1,4 +1,8 @@
 # Simple Cache
+[![Crates.io](https://img.shields.io/crates/v/simple-cache.svg)](https://crates.io/crates/simple-cache)
+[![Build Status](https://travis-ci.com/facile-it/rabbitmq-consumer.svg?branch=master)](https://travis-ci.com/facile-it/rabbitmq-consumer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A basic and simple Rust library async/await ready caching implementation for structures.
 
 ## Usage
@@ -20,9 +24,9 @@ async fn main() {
         string: String::from("test!"),
     };
 
-    cache.insert("test", Some(object)).await;
+    let _ = cache.insert("test", Some(object));
 
-    let cached_object = cache.get::<Object, _>("test").await.unwrap().unwrap();
+    let cached_object = cache.get::<Object, _>("test").unwrap().unwrap().unwrap();
     
     if cached_object.value == 1 {
         println!("Hi from Simple Cache!");

@@ -1,17 +1,16 @@
 [package]
-    name = "simple-cache"
-    description = "A basic and simple Rust library async/await ready caching implementation for structures."
-    version = "0.1.4"
-    authors = ["Emulator000 <emulator@hotmail.it>"]
-    edition = "2018"
-    readme = "README.md"
-    repository = "https://github.com/Emulator000/simple-cache"
-    license = "MIT"
-    keywords = ["cache", "struct", "object", "simple"]
+name = "simple-cache"
+description = "A basic and simple Rust library async/await ready caching implementation for structures."
+version = "0.2.0"
+authors = ["Emulator000 <emulator@hotmail.it>"]
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/Emulator000/simple-cache"
+license = "MIT"
+keywords = ["cache", "struct", "object", "simple"]
 
 [dependencies]
-    async-std = "^1.6"
-    arc-swap = "^0.4"
+arc-swap = "^1.3"
 
 [dev-dependencies]
-    tokio = { version = "^0.2", features = ["full"] }
+tokio = { version = "^1.6", features = ["full"] }
