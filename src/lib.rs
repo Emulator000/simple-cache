@@ -2,9 +2,7 @@ use std::any::Any;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::Arc;
-
-use async_std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use arc_swap::ArcSwap;
 
@@ -17,6 +15,8 @@ pub trait CacheItem: Send + Sync {}
 
 #[derive(Debug)]
 pub enum CacheError {
+    ReadError,
+    WriteError,
     NotFound,
     ValueMismatch,
 }
@@ -36,7 +36,7 @@ where
         }
     }
 
-    pub async fn get<T: 'static + CacheItem, Q: ?Sized>(
+    pub fn get<T: 'static + CacheItem, Q: ?Sized>(
         &self,
         key: &Q,
     ) -> CacheResult<Option<CacheType<T>>>
@@ -44,39 +44,50 @@ where
         K: Borrow<Q>,
         Q: Hash + Eq,
     {
-        match self.items.read().await.get(key) {
-            Some(object) => Self::downcast_object(object),
-            None => Ok(None),
+        match self.items.read() {
+            Ok(map) => match map.get(key) {
+                Some(object) => Self::downcast_object(object),
+                None => Ok(None),
+            },
+            Err(_) => Err(CacheError::ReadError),
         }
     }
 
-    pub async fn insert<T: 'static + CacheItem>(
+    pub fn insert<T: 'static + CacheItem>(
         &self,
         key: K,
         value: Option<T>,
     ) -> CacheResult<Option<CacheType<T>>> {
-        match self.items.write().await.insert(
-            key,
-            match value {
-                Some(value) => Some(ArcSwap::new(Arc::new(
-                    Box::new(Arc::new(value)) as AnyObject
-                ))),
-                None => None,
-            },
-        ) {
-            Some(object) => Self::downcast_object(&object),
-            None => Ok(None),
+        match self.items.write() {
+            Ok(mut map) => {
+                match map.insert(
+                    key,
+                    match value {
+                        Some(value) => Some(ArcSwap::new(Arc::new(
+                            Box::new(Arc::new(value)) as AnyObject
+                        ))),
+                        None => None,
+                    },
+                ) {
+                    Some(object) => Self::downcast_object(&object),
+                    None => Ok(None),
+                }
+            }
+            Err(_) => Err(CacheError::WriteError),
         }
     }
 
-    pub async fn remove<Q: ?Sized>(&self, key: &Q) -> CacheResult<Option<CacheObject>>
+    pub fn remove<Q: ?Sized>(&self, key: &Q) -> CacheResult<Option<CacheObject>>
     where
         K: Borrow<Q>,
         Q: Hash + Eq,
     {
-        match self.items.write().await.remove(key) {
-            Some(value) => Ok(value),
-            None => Err(CacheError::NotFound),
+        match self.items.write() {
+            Ok(mut map) => match map.remove(key) {
+                Some(value) => Ok(value),
+                None => Err(CacheError::NotFound),
+            },
+            Err(_) => Err(CacheError::WriteError),
         }
     }
 

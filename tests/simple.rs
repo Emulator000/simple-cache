@@ -15,12 +15,12 @@ async fn insert_and_get() {
         string: String::from("test!"),
     };
 
-    let cache_result = cache.insert("test", Some(object)).await;
+    let cache_result = cache.insert("test", Some(object));
 
     assert!(cache_result.is_ok());
     assert!(cache_result.unwrap().is_none());
 
-    let cached_object = cache.get::<Object, _>("test").await.unwrap().unwrap();
+    let cached_object = cache.get::<Object, _>("test").unwrap().unwrap();
 
     assert_eq!(cached_object.value, 1);
     assert_eq!(cached_object.string, "test!");
@@ -34,10 +34,10 @@ async fn remove() {
         string: String::from("test!"),
     };
 
-    let _ = cache.insert("test", Some(object)).await;
-    let _ = cache.remove("test").await;
+    let _ = cache.insert("test", Some(object));
+    let _ = cache.remove("test");
 
-    let cache_result = cache.get::<Object, _>("test").await;
+    let cache_result = cache.get::<Object, _>("test");
 
     assert!(cache_result.is_ok());
     assert!(cache_result.unwrap().is_none());
