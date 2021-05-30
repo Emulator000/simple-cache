@@ -10,8 +10,7 @@ license = "MIT"
 keywords = ["cache", "struct", "object", "simple"]
 
 [dependencies]
-async-std = "^1.6"
-arc-swap = "^0.4"
+arc-swap = "^1.3"
 
 [dev-dependencies]
-tokio = { version = "^0.2", features = ["full"] }
+tokio = { version = "^1.6", features = ["full"] }
