@@ -1,6 +1,5 @@
 # Simple Cache
 [![Crates.io](https://img.shields.io/crates/v/simple-cache.svg)](https://crates.io/crates/simple-cache)
-[![Build Status](https://travis-ci.com/facile-it/rabbitmq-consumer.svg?branch=master)](https://travis-ci.com/facile-it/rabbitmq-consumer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A basic and simple Rust library async/await ready caching implementation for structures.
